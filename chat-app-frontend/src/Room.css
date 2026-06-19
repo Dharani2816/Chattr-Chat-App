@@ -1,6 +1,6 @@
-/* App.css - polished authentication form */
+/* Room.css - room creation screen styles matching App.css design */
 
-.container {
+.room-card {
   width: min(100%, 420px);
   margin: auto;
   padding: 36px 32px;
@@ -15,13 +15,27 @@
   flex-direction: column;
 }
 
-/* Auth Header */
-.auth-header {
+/* Room Header */
+.room-header {
   text-align: center;
   margin-bottom: 24px;
 }
 
-.auth-header h1 {
+.room-kicker {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 99px;
+  margin-bottom: 12px;
+}
+
+.room-card h1 {
   color: var(--text-primary);
   font-size: 2.2rem;
   font-weight: 800;
@@ -29,19 +43,24 @@
   margin-bottom: 8px;
 }
 
-.auth-header .subtitle {
+.room-card .subtitle {
   color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 400;
 }
 
-/* Form Grouping */
+/* Form Styling */
+.room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 18px;
   text-align: left;
 }
 
@@ -97,7 +116,6 @@
   background: rgba(2, 6, 23, 0.6);
 }
 
-/* Focus color change for inputs icon */
 .input-wrapper:focus-within .input-icon {
   color: var(--primary);
 }
@@ -138,29 +156,6 @@
   box-shadow: none;
 }
 
-/* Divider OR */
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 18px 0;
-  color: var(--text-muted);
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--border-color);
-}
-
-.divider span {
-  padding: 0 10px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
 .btn-secondary {
   width: 100%;
   padding: 12px 18px;
@@ -194,7 +189,12 @@
   transform: none;
 }
 
-/* Compact Alert */
+/* Errors & Loader */
+.room-error {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
 .error-banner {
   display: flex;
   align-items: center;
@@ -206,7 +206,6 @@
   color: var(--error-text);
   font-size: 0.85rem;
   line-height: 1.4;
-  margin-bottom: 20px;
   text-align: left;
 }
 
@@ -217,7 +216,6 @@
   flex-shrink: 0;
 }
 
-/* Spinner */
 .loading-spinner-wrapper {
   display: inline-flex;
   align-items: center;
@@ -227,8 +225,4 @@
 .spinner {
   width: 16px;
   height: 16px;
-}
-
-.spinner path {
-  fill: currentColor;
 }
