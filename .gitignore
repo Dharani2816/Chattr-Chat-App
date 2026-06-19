@@ -1,3 +1,7 @@
 backend/node_modules/
 chat-app-frontend/node_modules/
 mongodb-chat-persistence.md
+user-auth-persistence.md
+add-email-to-auth.md
+session-storage-socket-tracking.md
+single-session-enforcement.md

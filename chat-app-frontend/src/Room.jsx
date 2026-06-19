@@ -10,11 +10,16 @@ function Room() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // If user navigates directly to /create-room but socket has no username, send back
-    if (!socket.username || socket.username.trim() === "") {
+    const localUser = sessionStorage.getItem('username');
+    const localToken = sessionStorage.getItem('token');
+
+    if (!localToken || !localUser) {
       nav("/");
       return;
     }
+
+    // Pre-populate socket username
+    socket.username = localUser;
 
     const handleRoomInfo = ({ roomId, roomName, members }) => {
       socket.roomId = roomId;
@@ -30,12 +35,20 @@ function Room() {
       setIsLoading(false);
     };
 
+    const handleSocketAuthBlocked = (event) => {
+      setError(event.detail?.message || 'You are already logged in from another tab.');
+      setIsLoading(false);
+      nav("/");
+    };
+
     socket.on('room-info', handleRoomInfo);
     socket.on('error', handleError);
+    window.addEventListener('socket-auth-blocked', handleSocketAuthBlocked);
 
     return () => {
       socket.off('room-info', handleRoomInfo);
       socket.off('error', handleError);
+      window.removeEventListener('socket-auth-blocked', handleSocketAuthBlocked);
     };
   }, [nav]);
 

@@ -1,4 +1,4 @@
-/* App.css - polished authentication form */
+/* App.css - polished authentication & rejoin dashboard */
 
 .container {
   width: min(100%, 420px);
@@ -13,12 +13,16 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: fadeIn 0.25s ease-out;
 }
 
 /* Auth Header */
 .auth-header {
   text-align: center;
   margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .auth-header h1 {
@@ -32,11 +36,76 @@
 .auth-header .subtitle {
   color: var(--text-secondary);
   font-size: 0.875rem;
-  line-height: 1.4;
+  line-height: 1.45;
   font-weight: 400;
 }
 
-/* Form Grouping */
+/* User Profile Badge */
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+  padding: 8px 14px;
+  border-radius: 99px;
+  margin-bottom: 20px;
+  width: fit-content;
+  align-self: center;
+}
+
+.user-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.user-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-profile-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: var(--error);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all var(--transition-fast);
+}
+
+.logout-btn:hover {
+  background: var(--error-bg);
+  color: #fff;
+}
+
+/* Forms */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -97,7 +166,6 @@
   background: rgba(2, 6, 23, 0.6);
 }
 
-/* Focus color change for inputs icon */
 .input-wrapper:focus-within .input-icon {
   color: var(--primary);
 }
@@ -138,7 +206,7 @@
   box-shadow: none;
 }
 
-/* Divider OR */
+/* Divider */
 .divider {
   display: flex;
   align-items: center;
@@ -192,6 +260,112 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Mode toggles */
+.auth-toggle {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.toggle-mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 2px 4px;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.toggle-mode-btn:hover {
+  color: var(--primary-hover);
+}
+
+/* Rejoinable rooms */
+.saved-rooms-section {
+  margin-top: 28px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+  text-align: left;
+}
+
+.saved-rooms-section h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.saved-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.saved-room-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.4);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.room-item-hash {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.room-item-id {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.room-item-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transform: translateX(-4px);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.saved-room-item:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  background: rgba(15, 23, 42, 0.7);
+  padding-left: 18px;
+}
+
+.saved-room-item:hover:not(:disabled) .room-item-arrow {
+  transform: translateX(0);
+  opacity: 1;
+  color: var(--primary);
+}
+
+.saved-room-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Compact Alert */
