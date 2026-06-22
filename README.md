@@ -39,6 +39,7 @@ Create a `.env` file in `backend/` with:
 ```env
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_secret_key
+GEMINI_API_KEY=your_google_gemini_api_key
 ```
 
 ## Getting Started
@@ -91,6 +92,14 @@ The frontend stores the token in `sessionStorage` and the user's joined rooms in
 - After 2 seconds of inactivity, `{ username, isTyping: false }` is emitted automatically
 - Sending a message also immediately stops the typing indicator
 - Other users see animated bouncing dots with the typing user's name (e.g., "Alice is typing...")
+
+### AI Chatbot (ChatrrBot)
+
+- Type `@ChatrrBot [your question]` in any room to get an AI-powered response
+- The bot fetches the last 20 messages for context and responds using **Google Gemini 2.5 Flash**
+- Get a free API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- Free tier: 15 requests/min, 1,500 requests/day — enough for portfolio/demo usage
+- Responses are fast (~1-2 seconds) and cost effectively nothing within free limits
 
 ### System Notifications
 

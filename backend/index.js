@@ -128,9 +128,104 @@ io.on('connection', async (socket) => {
         socket.broadcast.to(socket.roomId).emit('typing', { username, isTyping });
     });
 
+    // Helper: call Google Gemini API
+    async function callGemini(prompt) {
+        const API_KEY = process.env.GEMINI_API_KEY;
+        if (!API_KEY) {
+            console.warn('GEMINI_API_KEY not set in .env');
+            return null;
+        }
+
+        try {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            maxOutputTokens: 500,
+                            temperature: 0.7
+                        }
+                    })
+                }
+            );
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('Gemini API error:', response.status, errText);
+                throw new Error(`Gemini returned ${response.status}`);
+            }
+            const data = await response.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            return text?.trim() || '...';
+        } catch (error) {
+            console.error('Gemini error:', error.message);
+            return null;
+        }
+    }
+
     socket.on('message', async (msg) => {
         console.log(msg);
 
+        // Check if this message is directed at ChatrrBot
+        const isBotMessage = /^@ChatrrBot\b/i.test(msg.trim()) || /^@chatrrbot\b/i.test(msg.trim());
+
+        if (isBotMessage) {
+            try {
+                // Fetch recent chat history for context (last 20 messages)
+                const history = await Message.find({ roomId: socket.roomId })
+                    .sort({ timestamp: -1 })
+                    .limit(20)
+                    .lean();
+
+                const contextLines = history
+                    .reverse()
+                    .map(m => `${m.username}: ${m.text}`)
+                    .join('\n');
+
+                const userQuestion = msg.replace(/^@ChatrrBot\s*/i, '').trim() || msg.replace(/^@chatrrbot\s*/i, '').trim();
+
+                const prompt = [
+                    `You are ChatrrBot, a helpful AI assistant. You are in the room "#${socket.roomName}".`,
+                    `Current online users: ${rooms.get(socket.roomId)?.members.map(m => m.username).join(', ') || 'none'}`,
+                    ``,
+                    `Recent conversation:`,
+                    contextLines || '(no messages yet)',
+                    ``,
+                    `User ${socket.username} asks: ${userQuestion}`,
+                    ``,
+                    `Respond concisely and naturally. Keep it short — 2-3 sentences max.`
+                ].join('\n');
+
+                // Also persist the user's bot query to DB
+                await Message.create({
+                    roomId: socket.roomId,
+                    username: socket.username,
+                    text: msg
+                }).catch(() => {});
+
+                // Broadcast that the user asked the bot (so others see the question)
+                socket.broadcast.to(socket.roomId).emit('displayMsg', { user: socket.username, text: msg, timestamp: new Date() });
+
+                // "Bot is thinking..." indicator for the asking user
+                socket.emit('displayMsg', { user: 'ChatrrBot', text: '...', timestamp: new Date(), isTyping: true });
+
+                const aiResponse = await callGemini(prompt);
+
+                if (aiResponse) {
+                    io.to(socket.roomId).emit('displayMsg', { user: 'ChatrrBot', text: aiResponse, timestamp: new Date() });
+                } else {
+                    socket.emit('displayMsg', { user: 'ChatrrBot', text: '⚠️ Sorry, I could not connect to the AI model. Please check your API key.', timestamp: new Date() });
+                }
+            } catch (error) {
+                console.error('Error processing bot message:', error);
+                socket.emit('displayMsg', { user: 'ChatrrBot', text: '⚠️ An error occurred while processing your request.', timestamp: new Date() });
+            }
+            return;
+        }
+
+        // Normal message flow
         // Persist message to database
         try {
             await Message.create({

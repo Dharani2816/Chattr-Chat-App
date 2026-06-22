@@ -5,3 +5,6 @@ user-auth-persistence.md
 add-email-to-auth.md
 session-storage-socket-tracking.md
 single-session-enforcement.md
+backend\.env
+backend/.env
+backend/.env

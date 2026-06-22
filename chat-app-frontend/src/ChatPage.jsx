@@ -235,7 +235,7 @@ function ChatPage() {
                             messages.map((msg, index) => (
                                 <div
                                     key={index}
-                                    className={`message ${msg.user === "System" ? "system-message" : msg.user === "You" ? "sent" : "received"}`}
+                                    className={`message ${msg.user === "System" ? "system-message" : msg.user === "ChatrrBot" ? "bot-message" : msg.user === "You" ? "sent" : "received"}`}
                                 >
                                     {msg.user !== "System" && <span className="user">{msg.user}</span>}
                                     <p>{msg.text}</p>
@@ -266,7 +266,7 @@ function ChatPage() {
                     <div className="chat-input-panel">
                         <input
                             type="text"
-                            placeholder={`Message #${socket.roomName}...`}
+                            placeholder={`Message #${socket.roomName}... (Type @ChatrrBot for AI help)`}
                             value={message}
                             onChange={handleInputChange}
                             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
