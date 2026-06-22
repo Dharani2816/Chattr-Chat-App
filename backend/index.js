@@ -122,6 +122,10 @@ io.on('connection', async (socket) => {
         }
     });
 
+    socket.on('typing', ({ username, isTyping }) => {
+        socket.broadcast.to(socket.roomId).emit('typing', { username, isTyping });
+    });
+
     socket.on('message', async (msg) => {
         console.log(msg);
 

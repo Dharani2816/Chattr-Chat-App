@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import socket from "./socket";
 import "./ChatPage.css";
 import { useNavigate } from "react-router-dom";
@@ -7,9 +7,11 @@ function ChatPage() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [onlineUsers, setOnlineUsers] = useState(socket.onlineUsers || []);
+    const [typingUsers, setTypingUsers] = useState([]);
     const [copied, setCopied] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const messagesEndRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
     const nav = useNavigate();
 
     function disconnectUser() {
@@ -41,8 +43,23 @@ function ChatPage() {
             setMessages(formattedHistory);
         };
 
+        const handleTyping = ({ username, isTyping }) => {
+            if (username === socket.username) return;
+
+            setTypingUsers(prev => {
+                if (isTyping) {
+                    // Add user if not already in list
+                    return prev.includes(username) ? prev : [...prev, username];
+                } else {
+                    // Remove user from list
+                    return prev.filter(u => u !== username);
+                }
+            });
+        };
+
         socket.on('online', handleOnline);
         socket.on("displayMsg", handleDisplayMsg);
+        socket.on('typing', handleTyping);
         socket.onChatHistoryReceived = handleHistory;
 
         // Consume history if it was received before component mounted
@@ -56,6 +73,7 @@ function ChatPage() {
             socket.initialHistory = null;
             socket.off('online', handleOnline);
             socket.off("displayMsg", handleDisplayMsg);
+            socket.off('typing', handleTyping);
             // Do NOT disconnect here — only disconnect via the Leave button
         };
     }, [nav]);
@@ -65,8 +83,36 @@ function ChatPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const emitTyping = useCallback((isTyping) => {
+        socket.emit("typing", { username: socket.username, isTyping });
+    }, []);
+
+    const handleInputChange = (e) => {
+        setMessage(e.target.value);
+
+        // Emit typing started
+        emitTyping(true);
+
+        // Clear previous timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set a new timeout to stop typing after 2 seconds of inactivity
+        typingTimeoutRef.current = setTimeout(() => {
+            emitTyping(false);
+        }, 2000);
+    };
+
     const sendMessage = () => {
         if (message.trim() === "") return;
+
+        // Stop typing indicator when sending
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        emitTyping(false);
+
         let msg = {};
         msg.text = message;
         msg.user = 'You';
@@ -188,6 +234,23 @@ function ChatPage() {
                                 </div>
                             ))
                         )}
+                        {typingUsers.length > 0 && (
+                            <div className="typing-indicator">
+                                <span className="typing-dots">
+                                    <span className="dot"></span>
+                                    <span className="dot"></span>
+                                    <span className="dot"></span>
+                                </span>
+                                <span className="typing-text">
+                                    {typingUsers.length === 1
+                                        ? `${typingUsers[0]} is typing...`
+                                        : typingUsers.length === 2
+                                        ? `${typingUsers[0]} and ${typingUsers[1]} are typing...`
+                                        : `${typingUsers[0]} and ${typingUsers.length - 1} others are typing...`
+                                    }
+                                </span>
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -196,7 +259,7 @@ function ChatPage() {
                             type="text"
                             placeholder={`Message #${socket.roomName}...`}
                             value={message}
-                            onChange={(e) => setMessage(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                             autoComplete="off"
                         />
