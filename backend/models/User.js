@@ -22,10 +22,6 @@ const userSchema = new mongoose.Schema({
   rooms: [{
     type: String   // stores the short roomId e.g. "A3F9B21C"
   }],
-  socketId: {
-    type: String,
-    default: null
-  },
   lastSeen: {
     type: Date,
     default: null

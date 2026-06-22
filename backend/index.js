@@ -31,14 +31,6 @@ let rooms = new Map();
 
 io.on('connection', async (socket) => {
     // socket.username and socket.userId are automatically populated by socketAuth
-    try {
-        await User.findByIdAndUpdate(socket.userId, {
-            socketId: socket.id
-        });
-    } catch (error) {
-        console.error('Error recording socket connection:', error);
-    }
-
     socket.on('create-room', async (usernameArg, roomName) => {
         const roomId = crypto.randomUUID().slice(0, 8).toUpperCase();
         socket.roomName = roomName;
@@ -149,13 +141,13 @@ io.on('connection', async (socket) => {
 
     socket.on('disconnect', async () => {
         console.log(`${socket.username} disconnected`);
+
         try {
             await User.findByIdAndUpdate(socket.userId, {
-                socketId: null,
                 lastSeen: new Date()
             });
         } catch (error) {
-            console.error('Error clearing socket connection:', error);
+            console.error('Error updating lastSeen:', error);
         }
 
         const room = rooms.get(socket.roomId);
@@ -177,8 +169,6 @@ io.on('connection', async (socket) => {
 
 // Connect to database before listening
 connectDB().then(async () => {
-    await User.updateMany({ socketId: { $ne: null } }, { $set: { socketId: null } });
-
     server.listen(3000, () => {
         console.log('server running at port 3000');
     });

@@ -25,13 +25,13 @@ function ChatPage() {
             return;
         }
 
-        socket.on('online', (users) => {
+        const handleOnline = (users) => {
             setOnlineUsers(users);
-        });
+        };
 
-        socket.on("displayMsg", (msg) => {
+        const handleDisplayMsg = (msg) => {
             setMessages(prev => [...prev, msg]);
-        });
+        };
 
         const handleHistory = (history) => {
             const formattedHistory = history.map(h => ({
@@ -41,6 +41,8 @@ function ChatPage() {
             setMessages(formattedHistory);
         };
 
+        socket.on('online', handleOnline);
+        socket.on("displayMsg", handleDisplayMsg);
         socket.onChatHistoryReceived = handleHistory;
 
         // Consume history if it was received before component mounted
@@ -52,8 +54,9 @@ function ChatPage() {
         return () => {
             socket.onChatHistoryReceived = null;
             socket.initialHistory = null;
-            socket.off("displayMsg");
-            socket.disconnect();
+            socket.off('online', handleOnline);
+            socket.off("displayMsg", handleDisplayMsg);
+            // Do NOT disconnect here — only disconnect via the Leave button
         };
     }, [nav]);
 

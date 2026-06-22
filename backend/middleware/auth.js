@@ -14,17 +14,11 @@ const socketAuth = async (socket, next) => {
       return next(new Error('Authentication error: user not found'));
     }
 
-    if (user.socketId !== null) {
-      return next(new Error('Already logged in from another tab'));
-    }
 
-    socket.username = payload.username;   // replaces raw client arg
+    socket.username = payload.username;
     socket.userId   = payload.userId;
     next();
   } catch (error) {
-    if (error.message === 'Already logged in from another tab') {
-      return next(error);
-    }
     next(new Error('Authentication error: invalid token'));
   }
 };

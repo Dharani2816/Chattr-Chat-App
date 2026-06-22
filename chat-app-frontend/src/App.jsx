@@ -38,8 +38,9 @@ function App() {
       setError(errorMsg);
       setIsLoading(false);
 
-      // If socket is rejected due to authentication, redirect to login
-      if (errorMsg && errorMsg.toLowerCase().includes("authentication")) {
+      // If socket is rejected due to authentication or duplicate login, redirect to login
+      if (errorMsg && (errorMsg.toLowerCase().includes("authentication") || 
+          errorMsg.toLowerCase().includes("already logged in"))) {
         handleLogout();
       }
     };
