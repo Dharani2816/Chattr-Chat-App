@@ -14,6 +14,12 @@ function ChatPage() {
     const typingTimeoutRef = useRef(null);
     const nav = useNavigate();
 
+    const formatTime = (timestamp) => {
+        if (!timestamp) return "";
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     function disconnectUser() {
         socket.off("displayMsg");
         socket.disconnect();
@@ -32,13 +38,14 @@ function ChatPage() {
         };
 
         const handleDisplayMsg = (msg) => {
-            setMessages(prev => [...prev, msg]);
+            setMessages(prev => [...prev, { ...msg, timestamp: msg.timestamp || new Date() }]);
         };
 
         const handleHistory = (history) => {
             const formattedHistory = history.map(h => ({
                 user: h.username === socket.username ? 'You' : h.username,
-                text: h.text
+                text: h.text,
+                timestamp: h.timestamp
             }));
             setMessages(formattedHistory);
         };
@@ -116,6 +123,7 @@ function ChatPage() {
         let msg = {};
         msg.text = message;
         msg.user = 'You';
+        msg.timestamp = new Date();
         setMessages(prev => [...prev, msg]);
         socket.emit("message", message);
         setMessage("");
@@ -227,10 +235,11 @@ function ChatPage() {
                             messages.map((msg, index) => (
                                 <div
                                     key={index}
-                                    className={`message ${msg.user === "You" ? "sent" : "received"}`}
+                                    className={`message ${msg.user === "System" ? "system-message" : msg.user === "You" ? "sent" : "received"}`}
                                 >
-                                    <span className="user">{msg.user}</span>
+                                    {msg.user !== "System" && <span className="user">{msg.user}</span>}
                                     <p>{msg.text}</p>
+                                    <span className="message-time">{formatTime(msg.timestamp)}</span>
                                 </div>
                             ))
                         )}

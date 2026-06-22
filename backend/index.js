@@ -45,6 +45,7 @@ io.on('connection', async (socket) => {
         
         socket.emit('room-info', { roomId, roomName, members: rooms.get(roomId).members });
         io.to(roomId).emit('online', rooms.get(roomId).members);
+        io.to(roomId).emit('displayMsg', { user: 'System', text: `${socket.username} has joined the room`, timestamp: new Date() });
         console.log(`${socket.username} created and joined the ${roomName} room with ID: ${roomId}`);
         
         try {
@@ -98,6 +99,7 @@ io.on('connection', async (socket) => {
         
         socket.emit('room-info', { roomId, roomName, members: rooms.get(roomId).members });
         io.to(roomId).emit('online', rooms.get(roomId).members);
+        io.to(roomId).emit('displayMsg', { user: 'System', text: `${socket.username} has joined the room`, timestamp: new Date() });
         console.log(`${socket.username} with ${socket.id} connected to room ID: ${roomId}`);
 
         try {
@@ -140,7 +142,7 @@ io.on('connection', async (socket) => {
             console.error('Error persisting message:', error);
         }
 
-        socket.broadcast.to(socket.roomId).emit('displayMsg', { user: socket.username, text: msg });
+        socket.broadcast.to(socket.roomId).emit('displayMsg', { user: socket.username, text: msg, timestamp: new Date() });
     });
 
     socket.on('disconnect', async () => {
@@ -158,6 +160,8 @@ io.on('connection', async (socket) => {
         if (!room) {
             return;
         }
+
+        io.to(socket.roomId).emit('displayMsg', { user: 'System', text: `${socket.username} has left the room`, timestamp: new Date() });
 
         rooms.get(socket.roomId).members = room.members.filter(user => user.id !== socket.id);
 

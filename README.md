@@ -2,7 +2,7 @@
 
 Chatrr is a real-time chat app built with React, Vite, Node.js, Express, Socket.IO, and MongoDB.
 
-It supports user registration and login, room creation and joining, live online presence, message history, and persisted room/message data.
+It supports user registration and login, room creation and joining, live online presence, typing indicators, message history with timestamps, system notifications for join/leave events, and persisted room/message data.
 
 ## Features
 
@@ -10,12 +10,16 @@ It supports user registration and login, room creation and joining, live online 
 - Log in with either email or username
 - Create chat rooms with automatic room ID generation
 - Join existing rooms by room ID
-- See online users in a room in real time
+- See online users in a room in real time with a toggleable sidebar
 - Send and receive messages instantly through Socket.IO
+- **Typing indicator** — see who is typing in real time with animated bouncing dots
+- **Message timestamps** — each message displays the time it was sent (HH:MM format)
+- **Join/Leave notifications** — system messages announce when users join or leave the room (displayed as centered, muted banners)
 - Load the last 50 messages when joining a room
 - Persist users, rooms, and messages in MongoDB
 - Remember rooms you have joined so you can rejoin them quickly
 - Prevent the same account from staying logged in in multiple tabs at once
+- Copy room ID to clipboard with a single click
 
 ## Project Structure
 
@@ -81,6 +85,25 @@ The frontend stores the token in `sessionStorage` and the user's joined rooms in
 - On successful auth, users can create or join rooms
 - Room members, messages, and room metadata update in real time
 
+### Typing Indicator
+
+- As a user types, a `typing` event with `{ username, isTyping: true }` is emitted to the room
+- After 2 seconds of inactivity, `{ username, isTyping: false }` is emitted automatically
+- Sending a message also immediately stops the typing indicator
+- Other users see animated bouncing dots with the typing user's name (e.g., "Alice is typing...")
+
+### System Notifications
+
+- When a user creates or joins a room, a system message "X has joined the room" appears
+- When a user disconnects, a system message "X has left the room" appears
+- System messages are styled as centered, muted, italic banners (no chat bubble)
+
+### Message Timestamps
+
+- Every message stores a `timestamp` in MongoDB
+- Both sent and received messages display the time in HH:MM format
+- Timestamps are shown in small muted text below each message
+
 ### Room Persistence
 
 - Rooms are stored in MongoDB
@@ -104,4 +127,3 @@ The frontend stores the token in `sessionStorage` and the user's joined rooms in
 - Make sure MongoDB is running and `MONGO_URI` is valid before starting the backend.
 - The frontend and backend both assume the local development ports shown above.
 - If a user is already logged in from another tab, the socket connection is rejected to enforce single-session behavior.
-

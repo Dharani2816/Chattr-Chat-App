@@ -366,6 +366,15 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+.message-time {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: right;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+  font-weight: 400;
+}
+
 .received {
   align-self: flex-start;
   background: rgba(51, 65, 85, 0.45);
@@ -376,6 +385,30 @@
 
 .received .user {
   color: #60a5fa; /* Style username nicely on received bubbles */
+}
+
+/* System Messages (join/leave notifications) */
+.message.system-message {
+  align-self: center;
+  max-width: 90%;
+  width: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 14px;
+  text-align: center;
+}
+
+.message.system-message p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.message.system-message .message-time {
+  display: none;
 }
 
 /* Typing Indicator */
