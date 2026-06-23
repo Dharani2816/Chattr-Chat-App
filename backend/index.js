@@ -29,6 +29,29 @@ io.use(socketAuth);
 
 let rooms = new Map();
 
+// ── Rate Limiter ──────────────────────────────────────────
+// Limits each socket to `maxRequests` per `windowMs` window.
+const rateLimitMap = new Map();  // key → { count, windowStart }
+setInterval(() => {
+    // Clean up stale entries every 5 minutes
+    const cutoff = Date.now() - 60000;
+    for (const [key, entry] of rateLimitMap) {
+        if (entry.windowStart < cutoff) rateLimitMap.delete(key);
+    }
+}, 300000);
+
+function isRateLimited(key, maxRequests, windowMs = 60000) {
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+    if (!entry || now - entry.windowStart > windowMs) {
+        rateLimitMap.set(key, { count: 1, windowStart: now });
+        return false;
+    }
+    entry.count++;
+    return entry.count > maxRequests;
+}
+// ──────────────────────────────────────────────────────────
+
 io.on('connection', async (socket) => {
     // socket.username and socket.userId are automatically populated by socketAuth
     socket.on('create-room', async (usernameArg, roomName) => {
@@ -129,47 +152,81 @@ io.on('connection', async (socket) => {
     });
 
     // Helper: call Google Gemini API
-    async function callGemini(prompt) {
+    async function callGemini(prompt, retries = 2) {
         const API_KEY = process.env.GEMINI_API_KEY;
         if (!API_KEY) {
             console.warn('GEMINI_API_KEY not set in .env');
             return null;
         }
 
-        try {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            maxOutputTokens: 500,
-                            temperature: 0.7
-                        }
-                    })
+        // Fallback models if primary is overloaded
+        const models = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
+            'gemini-flash-latest'
+        ];
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            const model = attempt === 0 ? 'gemini-2.5-flash' : models[Math.min(attempt - 1, models.length - 1)];
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                maxOutputTokens: 500,
+                                temperature: 0.7
+                            }
+                        })
+                    }
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    return text?.trim() || '...';
                 }
-            );
-            if (!response.ok) {
                 const errText = await response.text();
-                console.error('Gemini API error:', response.status, errText);
+                console.warn(`Gemini ${model} returned ${response.status}: ${errText}`);
+
+                if (response.status === 429 || response.status === 503) {
+                    // Rate limited / overloaded — retry with next model after short delay
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
                 throw new Error(`Gemini returned ${response.status}`);
+            } catch (error) {
+                if (attempt >= retries) throw error;
+                console.warn(`Gemini attempt ${attempt + 1} failed: ${error.message}. Retrying...`);
+                await new Promise(r => setTimeout(r, 1000));
             }
-            const data = await response.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            return text?.trim() || '...';
-        } catch (error) {
-            console.error('Gemini error:', error.message);
-            return null;
         }
+        return null;
     }
 
     socket.on('message', async (msg) => {
         console.log(msg);
 
-        // Check if this message is directed at ChatrrBot
+        // Guard: user must be in a room to send messages
+        if (!socket.roomId) {
+            socket.emit('error', 'You must join a room before sending messages.');
+            return;
+        }
+
+        // Apply rate limiting: 30 normal messages or 5 bot queries per minute
         const isBotMessage = /^@ChatrrBot\b/i.test(msg.trim()) || /^@chatrrbot\b/i.test(msg.trim());
+
+        if (isBotMessage && isRateLimited(`${socket.id}-bot`, 5)) {
+            socket.emit('displayMsg', { user: 'ChatrrBot', text: '⏳ You are using the bot too fast. Please wait a moment before asking again.', timestamp: new Date() });
+            return;
+        }
+
+        if (!isBotMessage && isRateLimited(`${socket.id}-msg`, 30)) {
+            socket.emit('error', 'You are sending messages too fast. Please slow down.');
+            return;
+        }
 
         if (isBotMessage) {
             try {
@@ -198,23 +255,14 @@ io.on('connection', async (socket) => {
                     `Respond concisely and naturally. Keep it short — 2-3 sentences max.`
                 ].join('\n');
 
-                // Also persist the user's bot query to DB
-                await Message.create({
-                    roomId: socket.roomId,
-                    username: socket.username,
-                    text: msg
-                }).catch(() => {});
-
-                // Broadcast that the user asked the bot (so others see the question)
-                socket.broadcast.to(socket.roomId).emit('displayMsg', { user: socket.username, text: msg, timestamp: new Date() });
-
-                // "Bot is thinking..." indicator for the asking user
+                // "Bot is thinking..." indicator shown only to the asking user
                 socket.emit('displayMsg', { user: 'ChatrrBot', text: '...', timestamp: new Date(), isTyping: true });
 
                 const aiResponse = await callGemini(prompt);
 
                 if (aiResponse) {
-                    io.to(socket.roomId).emit('displayMsg', { user: 'ChatrrBot', text: aiResponse, timestamp: new Date() });
+                    // Send bot response ONLY to the user who asked
+                    socket.emit('displayMsg', { user: 'ChatrrBot', text: aiResponse, timestamp: new Date() });
                 } else {
                     socket.emit('displayMsg', { user: 'ChatrrBot', text: '⚠️ Sorry, I could not connect to the AI model. Please check your API key.', timestamp: new Date() });
                 }

@@ -50,6 +50,12 @@ function ChatPage() {
             setMessages(formattedHistory);
         };
 
+        const handleError = (errMsg) => {
+            // Remove the last local message if it was rejected by the backend
+            setMessages(prev => prev.slice(0, -1));
+            alert(errMsg);
+        };
+
         const handleTyping = ({ username, isTyping }) => {
             if (username === socket.username) return;
 
@@ -67,6 +73,7 @@ function ChatPage() {
         socket.on('online', handleOnline);
         socket.on("displayMsg", handleDisplayMsg);
         socket.on('typing', handleTyping);
+        socket.on('error', handleError);
         socket.onChatHistoryReceived = handleHistory;
 
         // Consume history if it was received before component mounted
@@ -81,6 +88,7 @@ function ChatPage() {
             socket.off('online', handleOnline);
             socket.off("displayMsg", handleDisplayMsg);
             socket.off('typing', handleTyping);
+            socket.off('error', handleError);
             // Do NOT disconnect here — only disconnect via the Leave button
         };
     }, [nav]);
