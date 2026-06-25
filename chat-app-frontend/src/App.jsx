@@ -58,12 +58,19 @@ function App() {
 
     socket.on('room-info', handleRoomInfo);
     socket.on('error', handleError);
+    const handleSocketConnectionError = (event) => {
+      setError(event.detail?.message || 'Connection error. Please try again.');
+      setIsLoading(false);
+    };
+
     window.addEventListener('socket-auth-blocked', handleSocketAuthBlocked);
+    window.addEventListener('socket-connection-error', handleSocketConnectionError);
 
     return () => {
       socket.off('room-info', handleRoomInfo);
       socket.off('error', handleError);
       window.removeEventListener('socket-auth-blocked', handleSocketAuthBlocked);
+      window.removeEventListener('socket-connection-error', handleSocketConnectionError);
     };
   }, [nav]);
 
@@ -153,10 +160,13 @@ function App() {
     setIsLoading(true);
 
     socket.username = username;
-    socket.roomid = finalRoomId;
+    socket.roomId = finalRoomId;
     
     // Explicitly update socket auth token before connecting
     socket.auth = { token: sessionStorage.getItem('token') };
+    
+    // Set flag so the connect listener knows this was a manual join
+    socket.isManualJoin = true;
     
     socket.connect();
     socket.emit("join-room", username, finalRoomId);
